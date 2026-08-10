@@ -1,0 +1,21 @@
+{
+  "name": "stlviewer",
+  "version": "0.1.0",
+  "description": "Embeddable vanilla JavaScript STL viewer with WebGL drag-to-rotate controls.",
+  "main": "dist/stl-viewer.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "mkdir -p dist && cp src/stl-viewer.js dist/stl-viewer.js",
+    "test": "node --check src/stl-viewer.js"
+  },
+  "keywords": [
+    "stl",
+    "viewer",
+    "webgl",
+    "3d"
+  ],
+  "license": "MIT"
+}

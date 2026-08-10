@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STLViewer Example</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f4f5; }
+    main { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    #viewer { width: 100%; height: 600px; background: white; border: 1px solid #ddd; }
+    input { width: min(720px, 100%); padding: 8px; }
+    button { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>STLViewer</h1>
+    <p>Paste STL URL, then drag model to rotate. Wheel zooms.</p>
+    <p>
+      <input id="url" placeholder="https://example.com/model.stl">
+      <button id="load">Load</button>
+    </p>
+    <div id="viewer"></div>
+  </main>
+
+  <script src="../dist/stl-viewer.js"></script>
+  <script>
+    const viewer = new STLViewer('#viewer', {
+      background: '#ffffff',
+      color: [0.15, 0.45, 0.85]
+    });
+
+    document.querySelector('#load').addEventListener('click', () => {
+      const url = document.querySelector('#url').value.trim();
+      if (url) viewer.load(url).catch((error) => alert(error.message));
+    });
+  </script>
+</body>
+</html>

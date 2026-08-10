@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STLViewer Tag Example</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f4f5; }
+    main { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    stl-viewer { width: 100%; height: 600px; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>STLViewer custom tag</h1>
+    <stl-viewer
+      src="https://raw.githubusercontent.com/admesh/admesh/master/block.stl"
+      background="#ffffff"
+      color="0.15,0.45,0.85">
+    </stl-viewer>
+  </main>
+
+  <script src="../dist/stl-viewer.js"></script>
+</body>
+</html>
