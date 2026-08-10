@@ -10,11 +10,18 @@ class STLViewer {
 
     this.options = {
       url: null,
+      theme: 'light',
       background: '#ffffff',
       color: [0.8, 0.82, 0.86],
       autoResize: true,
       ...options,
     };
+
+    if (options.theme) {
+      this.setTheme(options.theme);
+      if (options.background) this.options.background = options.background;
+      if (options.color) this.options.color = options.color;
+    }
 
     this.rotationX = -0.45;
     this.rotationY = 0.65;
@@ -72,6 +79,14 @@ class STLViewer {
     this.normalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.mesh.normals, gl.STATIC_DRAW);
+  }
+
+  setTheme(theme) {
+    const next = getThemeOptions(theme);
+    this.options.theme = next.name;
+    this.options.background = next.background;
+    this.options.color = next.color;
+    return this;
   }
 
   resize = () => {
@@ -410,7 +425,7 @@ function clamp(value, min, max) {
 
 class STLViewerElement extends HTMLElement {
   static get observedAttributes() {
-    return ['src', 'background', 'color'];
+    return ['src', 'theme', 'background', 'color'];
   }
 
   connectedCallback() {
@@ -428,21 +443,49 @@ class STLViewerElement extends HTMLElement {
   attributeChangedCallback(name, oldValue, newValue) {
     if (!this.viewer || oldValue === newValue) return;
     if (name === 'src' && newValue) this.viewer.load(newValue);
-    if (name === 'background') this.viewer.options.background = newValue || '#ffffff';
-    if (name === 'color') this.viewer.options.color = parseColorAttribute(newValue);
+    if (name === 'theme') {
+      this.viewer.setTheme(newValue || 'light');
+      if (this.hasAttribute('background')) this.viewer.options.background = this.getAttribute('background');
+      if (this.hasAttribute('color')) this.viewer.options.color = parseColorAttribute(this.getAttribute('color'));
+    }
+    if (name === 'background') this.viewer.options.background = newValue || getThemeOptions(this.getAttribute('theme') || 'light').background;
+    if (name === 'color') this.viewer.options.color = parseColorAttribute(newValue) || getThemeOptions(this.getAttribute('theme') || 'light').color;
   }
 
   optionsFromAttributes() {
+    const theme = this.getAttribute('theme') || 'light';
+    const themeOptions = getThemeOptions(theme);
     return {
       url: this.getAttribute('src'),
-      background: this.getAttribute('background') || '#ffffff',
-      color: parseColorAttribute(this.getAttribute('color')),
+      theme,
+      background: this.getAttribute('background') || themeOptions.background,
+      color: parseColorAttribute(this.getAttribute('color')) || themeOptions.color,
     };
   }
 }
 
+const THEMES = {
+  light: { name: 'light', background: '#ffffff', color: [0.8, 0.82, 0.86] },
+  dark: { name: 'dark', background: '#111827', color: [0.7, 0.75, 0.85] },
+};
+
+function getThemeOptions(theme) {
+  if (typeof theme === 'string') {
+    const next = THEMES[theme.toLowerCase()];
+    if (!next) throw new Error(`Unknown theme: ${theme}`);
+    return next;
+  }
+
+  if (!theme || typeof theme !== 'object') throw new Error('Theme must be "light", "dark", or an object');
+  return {
+    name: theme.name || 'custom',
+    background: theme.background || '#ffffff',
+    color: theme.color || [0.8, 0.82, 0.86],
+  };
+}
+
 function parseColorAttribute(value) {
-  if (!value) return [0.8, 0.82, 0.86];
+  if (!value) return null;
   return value.split(',').map(Number).slice(0, 3);
 }
 

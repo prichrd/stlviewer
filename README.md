@@ -11,8 +11,7 @@ Custom element:
 <stl-viewer
   src="https://example.com/model.stl"
   style="width: 640px; height: 480px;"
-  background="#ffffff"
-  color="0.8,0.82,0.86">
+  theme="light">
 </stl-viewer>
 ```
 
@@ -24,9 +23,10 @@ JavaScript API:
 <script>
   const viewer = new STLViewer('#viewer', {
     url: 'https://example.com/model.stl',
-    background: '#ffffff',
-    color: [0.8, 0.82, 0.86]
+    theme: 'light'
   });
+
+  viewer.setTheme('dark');
 </script>
 ```
 
@@ -37,6 +37,8 @@ Mouse/touch drag rotates model. Mouse wheel zooms.
 ```js
 const viewer = new STLViewer(container, options);
 await viewer.load(url);
+viewer.setTheme('dark');
+viewer.setTheme('light');
 viewer.dispose();
 ```
 
@@ -45,8 +47,17 @@ viewer.dispose();
 Options:
 
 - `url`: STL URL to load. Binary and ASCII STL supported.
-- `background`: CSS hex color, default `#ffffff`.
-- `color`: RGB array from `0` to `1`, default `[0.8, 0.82, 0.86]`.
+- `theme`: `light` or `dark`, default `light`.
+- `background`: CSS hex color. Overrides theme background.
+- `color`: RGB array from `0` to `1`. Overrides theme color.
 - `autoResize`: resize with container, default `true`.
+
+Custom element also supports runtime toggles:
+
+```js
+const viewer = document.querySelector('stl-viewer');
+viewer.setAttribute('theme', 'dark');
+viewer.setAttribute('theme', 'light');
+```
 
 Note: remote STL URLs need CORS headers if hosted on another domain.
