@@ -49,7 +49,9 @@ Options:
 - `url`: STL URL to load. Binary and ASCII STL supported.
 - `theme`: `light` or `dark`, default `light`.
 - `background`: CSS hex color. Overrides theme background.
-- `color`: RGB array from `0` to `1`. Overrides theme color.
+- `color`: RGB array from `0` to `1` or CSS hex color. Overrides theme color.
+- `grid`: show background grid, default `true`.
+- `gridColor`: RGBA array from `0` to `1` or CSS hex color. Overrides theme grid color.
 - `autoResize`: resize with container, default `true`.
 
 Custom element also supports runtime toggles:
@@ -58,6 +60,8 @@ Custom element also supports runtime toggles:
 const viewer = document.querySelector('stl-viewer');
 viewer.setAttribute('theme', 'dark');
 viewer.setAttribute('theme', 'light');
+viewer.setAttribute('grid', 'false');
+viewer.setAttribute('grid-color', '0.25,0.35,0.5,0.8');
 ```
 
 Note: remote STL URLs need CORS headers if hosted on another domain.
