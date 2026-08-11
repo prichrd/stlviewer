@@ -13,8 +13,6 @@ class STLViewer {
       theme: 'light',
       background: '#ffffff',
       color: [0.8, 0.82, 0.86],
-      grid: true,
-      gridColor: [0.84, 0.87, 0.92, 0.7],
       autoResize: true,
       ...options,
     };
@@ -23,7 +21,6 @@ class STLViewer {
       this.setTheme(options.theme);
       if (options.background) this.options.background = options.background;
       if (options.color) this.options.color = options.color;
-      if (options.gridColor) this.options.gridColor = options.gridColor;
     }
 
     this.rotationX = -0.45;
@@ -89,7 +86,20 @@ class STLViewer {
     this.options.theme = next.name;
     this.options.background = next.background;
     this.options.color = next.color;
-    this.options.gridColor = next.gridColor;
+    return this;
+  }
+
+  clear() {
+    const gl = this.gl;
+    this.mesh = null;
+    if (this.vertexBuffer) {
+      gl.deleteBuffer(this.vertexBuffer);
+      this.vertexBuffer = null;
+    }
+    if (this.normalBuffer) {
+      gl.deleteBuffer(this.normalBuffer);
+      this.normalBuffer = null;
+    }
     return this;
   }
 
@@ -164,42 +174,13 @@ class STLViewer {
       throw new Error(gl.getProgramInfoLog(this.program) || 'WebGL program link failed');
     }
 
-    const gridVertexShader = compileShader(gl, gl.VERTEX_SHADER, `
-      attribute vec3 aPosition;
-      uniform mat4 uMatrix;
-      void main() {
-        gl_Position = uMatrix * vec4(aPosition, 1.0);
-      }
-    `);
-    const gridFragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, `
-      precision mediump float;
-      uniform vec4 uColor;
-      void main() {
-        gl_FragColor = uColor;
-      }
-    `);
-
-    this.gridProgram = gl.createProgram();
-    gl.attachShader(this.gridProgram, gridVertexShader);
-    gl.attachShader(this.gridProgram, gridFragmentShader);
-    gl.linkProgram(this.gridProgram);
-    if (!gl.getProgramParameter(this.gridProgram, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(this.gridProgram) || 'WebGL grid program link failed');
-    }
-
     this.locations = {
       position: gl.getAttribLocation(this.program, 'aPosition'),
       normal: gl.getAttribLocation(this.program, 'aNormal'),
       matrix: gl.getUniformLocation(this.program, 'uMatrix'),
       normalMatrix: gl.getUniformLocation(this.program, 'uNormalMatrix'),
       color: gl.getUniformLocation(this.program, 'uColor'),
-      gridPosition: gl.getAttribLocation(this.gridProgram, 'aPosition'),
-      gridMatrix: gl.getUniformLocation(this.gridProgram, 'uMatrix'),
-      gridColor: gl.getUniformLocation(this.gridProgram, 'uColor'),
     };
-
-    this.gridBuffer = gl.createBuffer();
-    this.gridVertexCount = makeGrid(gl, this.gridBuffer);
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -214,23 +195,6 @@ class STLViewer {
     const aspect = this.canvas.width / this.canvas.height;
     const projection = mat4Perspective(Math.PI / 4, aspect, 0.01, 100);
     const view = mat4Translate(0, 0, -3 * this.zoom);
-    const gridMatrix = mat4Multiply(projection, view);
-
-    if (this.options.grid) {
-      gl.disable(gl.DEPTH_TEST);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.useProgram(this.gridProgram);
-      gl.uniformMatrix4fv(this.locations.gridMatrix, false, gridMatrix);
-      gl.uniform4fv(this.locations.gridColor, colorToRgba(this.options.gridColor));
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.gridBuffer);
-      gl.enableVertexAttribArray(this.locations.gridPosition);
-      gl.vertexAttribPointer(this.locations.gridPosition, 3, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.LINES, 0, this.gridVertexCount);
-      gl.disable(gl.BLEND);
-      gl.enable(gl.DEPTH_TEST);
-    }
-
     if (this.mesh) {
       const model = mat4Multiply(
         view,
@@ -264,7 +228,6 @@ class STLViewer {
     else window.removeEventListener('resize', this.resize);
     if (this.vertexBuffer) this.gl.deleteBuffer(this.vertexBuffer);
     if (this.normalBuffer) this.gl.deleteBuffer(this.normalBuffer);
-    if (this.gridBuffer) this.gl.deleteBuffer(this.gridBuffer);
     this.canvas.remove();
   }
 }
@@ -389,22 +352,6 @@ function faceNormal(a, b, c) {
   return [nx / length, ny / length, nz / length];
 }
 
-function makeGrid(gl, buffer) {
-  const size = 8;
-  const step = 0.5;
-  const y = -1.05;
-  const vertices = [];
-
-  for (let value = -size; value <= size + 0.0001; value += step) {
-    vertices.push(-size, y, value, size, y, value);
-    vertices.push(value, y, -size, value, y, size);
-  }
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  return vertices.length / 3;
-}
-
 function compileShader(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
@@ -503,7 +450,7 @@ function clamp(value, min, max) {
 
 class STLViewerElement extends HTMLElement {
   static get observedAttributes() {
-    return ['src', 'theme', 'background', 'color', 'grid', 'grid-color'];
+    return ['src', 'theme', 'background', 'color'];
   }
 
   connectedCallback() {
@@ -525,12 +472,9 @@ class STLViewerElement extends HTMLElement {
       this.viewer.setTheme(newValue || 'light');
       if (this.hasAttribute('background')) this.viewer.options.background = this.getAttribute('background');
       if (this.hasAttribute('color')) this.viewer.options.color = parseColorAttribute(this.getAttribute('color'));
-      if (this.hasAttribute('grid-color')) this.viewer.options.gridColor = parseColorAttribute(this.getAttribute('grid-color'));
     }
     if (name === 'background') this.viewer.options.background = newValue || getThemeOptions(this.getAttribute('theme') || 'light').background;
     if (name === 'color') this.viewer.options.color = parseColorAttribute(newValue) || getThemeOptions(this.getAttribute('theme') || 'light').color;
-    if (name === 'grid') this.viewer.options.grid = newValue !== 'false';
-    if (name === 'grid-color') this.viewer.options.gridColor = parseColorAttribute(newValue) || getThemeOptions(this.getAttribute('theme') || 'light').gridColor;
   }
 
   optionsFromAttributes() {
@@ -541,15 +485,13 @@ class STLViewerElement extends HTMLElement {
       theme,
       background: this.getAttribute('background') || themeOptions.background,
       color: parseColorAttribute(this.getAttribute('color')) || themeOptions.color,
-      grid: this.getAttribute('grid') !== 'false',
-      gridColor: parseColorAttribute(this.getAttribute('grid-color')) || themeOptions.gridColor,
     };
   }
 }
 
 const THEMES = {
-  light: { name: 'light', background: '#ffffff', color: [0.8, 0.82, 0.86], gridColor: [0.84, 0.87, 0.92, 0.7] },
-  dark: { name: 'dark', background: '#111827', color: [0.7, 0.75, 0.85], gridColor: [0.2, 0.27, 0.38, 0.7] },
+  light: { name: 'light', background: '#ffffff', color: [0.8, 0.82, 0.86] },
+  dark: { name: 'dark', background: '#111827', color: [0.7, 0.75, 0.85] },
 };
 
 function getThemeOptions(theme) {
@@ -564,7 +506,6 @@ function getThemeOptions(theme) {
     name: theme.name || 'custom',
     background: theme.background || '#ffffff',
     color: theme.color || [0.8, 0.82, 0.86],
-    gridColor: theme.gridColor || [0.84, 0.87, 0.92, 0.7],
   };
 }
 
